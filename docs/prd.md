@@ -97,9 +97,9 @@ Based on the Must-Haves:
     *   A list of 2 suggested Call-to-Action (CTA) phrases.
 *   **FR-6:** The UI must feature a "Copy" button next to each generated caption, hashtag list, and CTA list.
 *   **FR-7:** The UI must feature a "Download Results" button that saves all currently displayed outputs into a single, formatted `.txt` file.
-*   **FR-8:** The system shall allow the user to upload a single image (`.jpg`, `.png`) as an optional input for content generation.
+*   **FR-8:** The system shall allow the user to upload a single image (`.jpg`, `.jpeg`, `.png`) as an optional input for content generation.
     *   **Acceptance Criteria:**
-        *   The UI must feature a file upload widget that accepts only `.jpg` and `.png` file types.
+        *   The UI must feature a file upload widget that accepts only `.jpg`, `.jpeg`, and `.png` file types.
         *   The system must enforce a maximum file size of 5MB.
         *   If a user attempts to upload an unsupported file type or a file larger than 5MB, a clear error message shall be displayed (e.g., "Invalid file. Please upload a JPG or PNG under 5MB.").
         *   The image upload is optional; generation can proceed with text-only inputs or with both image and text inputs.
