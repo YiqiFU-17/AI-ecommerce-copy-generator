@@ -1,6 +1,6 @@
 # MVP Epics: E-commerce Copywriting Tool
 
-**Version:** 1.0
+**Version:** 1.1
 **Status:** Ready for Development
 
 This document breaks down the MVP into major themes of work (Epics). Each epic represents a significant chunk of user value and is aligned with the approved PRD and Architecture documents. The scope is locked per `docs/irr.md`.
@@ -102,3 +102,35 @@ This document breaks down the MVP into major themes of work (Epics). Each epic r
     *   All tests in the `tests` directory pass when `pytest` is run.
     *   Test coverage for `src/client.py` and `src/core.py` is established.
     *   The `requirements.txt` file is updated with `pytest` and `pytest-mock`.
+
+---
+
+### Epic 6: Multimodal Content Generation (Image + Text)
+
+*   **Goal:** Allow users to generate richer, more contextually-aware marketing copy by providing a product image alongside existing text inputs, leading to higher quality and more relevant results with less manual text entry.
+*   **Success Metrics:** 
+    *   A user can successfully generate copy using only an image.
+    *   A user can successfully generate copy using both an image and supplemental text.
+    *   The system rejects invalid file types or sizes with a clear user-facing error.
+*   **Traceability:**
+    *   **PRD:** FR-8, Story 5
+    *   **Architecture:** Version 1.1, Sections 4.1 (UI Flow), 4.2 (Client Design)
+*   **In Scope:**
+    *   Adding a `st.file_uploader` widget to the UI for `.jpg` and `.png` images, with a 5MB size limit.
+    *   Displaying a preview thumbnail of the uploaded image.
+    *   Implementing server-side validation for file type and size.
+    *   Updating the service layer (`core.py`) to handle `ImageInput` and perform base64 encoding.
+    *   Updating the `GeminiClient` (`client.py`) to construct and send multimodal requests (text + image data) as defined in the architecture.
+    *   Ensuring the generation process works correctly for image-only, text-only, and mixed (image + text) inputs.
+    *   Displaying clear error messages for invalid uploads or API failures related to image processing.
+*   **Out of Scope:**
+    *   Support for multiple simultaneous image uploads.
+    *   Any image editing or manipulation tools.
+    *   Automatic generation of `alt-text` for the image (deferred post-MVP).
+    *   Any changes to the output data model (`GeneratedCopy`) or the UI components that display the results.
+*   **Definition of Done:**
+    *   A user can upload a valid `.jpg` or `.png` file under 5MB. An error message is shown for invalid files.
+    *   The `GeminiClient` sends a request payload containing both text and base64-encoded image data when an image is provided.
+    *   The application generates relevant, high-quality copy based on the image and text inputs combined.
+    *   All existing text-only functionality remains unaffected and passes existing tests.
+    *   New unit tests for `build_request_payload` and integration tests for the multimodal `GeminiClient.generate` call are written and passing.
