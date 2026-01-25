@@ -97,6 +97,14 @@ Based on the Must-Haves:
     *   A list of 2 suggested Call-to-Action (CTA) phrases.
 *   **FR-6:** The UI must feature a "Copy" button next to each generated caption, hashtag list, and CTA list.
 *   **FR-7:** The UI must feature a "Download Results" button that saves all currently displayed outputs into a single, formatted `.txt` file.
+*   **FR-8:** The system shall allow the user to upload a single image (`.jpg`, `.png`) as an optional input for content generation.
+    *   **Acceptance Criteria:**
+        *   The UI must feature a file upload widget that accepts only `.jpg` and `.png` file types.
+        *   The system must enforce a maximum file size of 5MB.
+        *   If a user attempts to upload an unsupported file type or a file larger than 5MB, a clear error message shall be displayed (e.g., "Invalid file. Please upload a JPG or PNG under 5MB.").
+        *   The image upload is optional; generation can proceed with text-only inputs or with both image and text inputs.
+        *   When both an image and text fields are provided, the model prompt should prioritize facts from the image and use text fields (like Brand Tone, Promotion) as supplemental constraints.
+        *   The generated output structure (3 captions, hashtags, 2 CTAs) must remain identical to the text-only output.
 
 ### 4.2. Non-Functional Requirements
 
@@ -145,6 +153,17 @@ Based on the Must-Haves:
         *   A "Download Results" button is available in the output area.
         *   Clicking it triggers the download of a `.txt` file.
         *   The file contains all 3 captions, the hashtags, and the CTAs, clearly labeled.
+
+*   **Story 5: Generate Copy from an Image**
+    *   **As a** user (Sarah the Solopreneur),
+    *   **I want** to upload a photo of my product to generate copy,
+    *   **so that** I can create marketing content quickly without having to describe the product in detail manually.
+    *   **Acceptance Criteria:**
+        *   The UI provides a clear "Upload Image" button or drag-and-drop area.
+        *   After I select a valid image, a thumbnail preview is shown.
+        *   If I upload an invalid file (not JPG/PNG or >5MB), an immediate error message appears.
+        *   I can click "Generate Copy" with only an image uploaded and receive relevant results.
+        *   The generated captions, hashtags, and CTAs are displayed in the same format as the text-only generation.
 
 ## 6. Input and Output Specifications
 
