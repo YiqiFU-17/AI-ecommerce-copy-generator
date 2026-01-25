@@ -26,25 +26,52 @@ with st.form("copy_generation_form"):
     brand_tone = st.selectbox("Brand Tone", options=BRAND_TONES)
     target_audience = st.text_input("Target Audience (Optional)", placeholder="e.g., 'Coffee lovers, remote workers'")
 
+    st.header("Image (Optional)")
+    uploaded_image = st.file_uploader(
+        "Upload an image for additional context.",
+        type=['jpg', 'jpeg', 'png']
+    )
+    if uploaded_image:
+        st.image(uploaded_image, caption="Image Preview", width=200)
+
     submitted = st.form_submit_button("Generate Copy")
 
 # --- Form Submission & Results Display ---
 if submitted:
-    if not product_title or not product_description or not product_category:
-        st.error("Please fill in Product Title, Category, and Description.")
+    # --- Input Validation ---
+    has_text_input = product_title and product_category and product_description
+    has_valid_image = False
+    image_bytes, image_mime_type = None, None
+
+    if uploaded_image:
+        if uploaded_image.size > 5 * 1024 * 1024:
+            st.error("Image is too large. Please upload an image under 5MB.")
+        else:
+            has_valid_image = True
+            image_bytes = uploaded_image.getvalue()
+            image_mime_type = uploaded_image.type
+
+    # Generation is possible if we have a valid image OR the required text fields.
+    if not has_valid_image and not has_text_input:
+        st.error("Please either upload a valid image or fill in the Product Title, Category, and Description.")
     else:
         with st.spinner("Generating copy... This may take a moment."):
             try:
+                # Pass field values as None if they are empty strings
                 product_input = ProductInput(
-                    title=product_title,
-                    category=product_category,
-                    description=product_description,
+                    title=product_title or None,
+                    category=product_category or None,
+                    description=product_description or None,
                     brand_tone=brand_tone,
-                    promotion=promotion if promotion else None,
-                    target_audience=target_audience if target_audience else None
+                    promotion=promotion or None,
+                    target_audience=target_audience or None
                 )
-                # Store results in session state
-                st.session_state.generated_copy = generate_copy_from_input(product_input)
+                
+                st.session_state.generated_copy = generate_copy_from_input(
+                    product_input,
+                    image_bytes=image_bytes,
+                    image_mime_type=image_mime_type
+                )
             except GenerationError as e:
                 st.session_state.generated_copy = None # Clear previous results on error
                 st.error(f"Failed to generate copy: {e}")

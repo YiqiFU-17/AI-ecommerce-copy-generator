@@ -100,3 +100,29 @@ def test_generate_raises_on_json_decode_error(mocker, client):
 
     with pytest.raises(ResponseParseError, match="Failed to decode API response as JSON."):
         client.generate("test prompt")
+
+def test_generate_with_multimodal_payload(mocker, client):
+    """Tests that the generate method constructs the correct multimodal payload."""
+    mock_post = mocker.patch('requests.post')
+    
+    prompt = "Describe this image"
+    image_b64 = "base64encodedimagedata"
+    mime_type = "image/jpeg"
+    
+    client.generate(prompt, image_b64_data=image_b64, image_mime_type=mime_type)
+    
+    mock_post.assert_called_once()
+    # Get the `json` argument from the call
+    sent_payload = mock_post.call_args.kwargs['json']
+    
+    # Check the payload structure
+    expected_parts = [
+        {"text": prompt},
+        {
+            "inline_data": {
+                "mime_type": mime_type,
+                "data": image_b64
+            }
+        }
+    ]
+    assert sent_payload['contents'][0]['parts'] == expected_parts

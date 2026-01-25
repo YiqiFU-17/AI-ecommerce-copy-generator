@@ -1,17 +1,18 @@
 from dataclasses import dataclass
 from typing import List, Optional
 import json
+import base64
 from .client import GeminiClient, APIError
 
 # --- Data Models ---
 
 @dataclass
 class ProductInput:
-    """Input data for copy generation."""
-    title: str
-    category: str
-    description: str
-    brand_tone: str
+    """Input data for copy generation. Text fields are optional if an image is provided."""
+    brand_tone: Optional[str] = None # Still required from UI, but optional here
+    title: Optional[str] = None
+    category: Optional[str] = None
+    description: Optional[str] = None
     promotion: Optional[str] = None
     target_audience: Optional[str] = None
 
@@ -55,30 +56,54 @@ def format_results_for_txt(copy: GeneratedCopy) -> str:
 def build_prompt(data: ProductInput) -> str:
     """
     Constructs the final text prompt to be sent to the LLM.
+    Handles optional fields gracefully.
     """
     prompt_lines = [
-        "You are an expert Instagram copywriter. Given the following product details, generate 3 unique Instagram captions, 10 relevant hashtags, and 2 calls-to-action.",
+        "You are an expert Instagram copywriter. Given the following product details (and/or an image), generate 3 unique Instagram captions, 10 relevant hashtags, and 2 calls-to-action.",
+        "If an image is the primary input, focus on visually descriptive and engaging copy. If text details are provided, use them to inform the tone and content.",
         "Return the output as a single, minified JSON object with keys: \"captions\" (a list of 3 strings), \"hashtags\" (a list of 10 strings), and \"ctas\" (a list of 2 strings).",
-        "\n--- PRODUCT DETAILS ---",
-        f"Title: {data.title}",
-        f"Category: {data.category}",
-        f"Description: {data.description}",
-        f"Brand Tone: {data.brand_tone}",
     ]
+    
+    details_added = False
+    details_section = ["\n--- PRODUCT DETAILS ---"]
+    if data.title:
+        details_section.append(f"Title: {data.title}")
+        details_added = True
+    if data.category:
+        details_section.append(f"Category: {data.category}")
+        details_added = True
+    if data.description:
+        details_section.append(f"Description: {data.description}")
+        details_added = True
+    if data.brand_tone:
+        details_section.append(f"Brand Tone: {data.brand_tone}")
+        details_added = True
     if data.promotion:
-        prompt_lines.append(f"Current Promotion: {data.promotion}")
+        details_section.append(f"Current Promotion: {data.promotion}")
+        details_added = True
     if data.target_audience:
-        prompt_lines.append(f"Target Audience: {data.target_audience}")
+        details_section.append(f"Target Audience: {data.target_audience}")
+        details_added = True
+
+    # Only add the details section if at least one detail was present
+    if details_added:
+        prompt_lines.extend(details_section)
     
     return "\n".join(prompt_lines)
 
 
-def generate_copy_from_input(data: ProductInput) -> GeneratedCopy:
+def generate_copy_from_input(
+    data: ProductInput, 
+    image_bytes: Optional[bytes] = None, 
+    image_mime_type: Optional[str] = None
+) -> GeneratedCopy:
     """
-    Orchestrates the copy generation process.
+    Orchestrates the copy generation process, now with optional image input.
 
     Args:
         data: The structured product input.
+        image_bytes: Optional raw bytes of the image file.
+        image_mime_type: Optional MIME type of the image file.
 
     Returns:
         A GeneratedCopy object with the AI-generated content.
@@ -89,7 +114,17 @@ def generate_copy_from_input(data: ProductInput) -> GeneratedCopy:
     try:
         prompt = build_prompt(data)
         client = GeminiClient()
-        response = client.generate(prompt)
+
+        image_b64_data = None
+        if image_bytes and image_mime_type:
+            # The API expects a base64-encoded string
+            image_b64_data = base64.b64encode(image_bytes).decode('utf-8')
+
+        response = client.generate(
+            prompt, 
+            image_b64_data=image_b64_data, 
+            image_mime_type=image_mime_type
+        )
         
         # The Gemini API returns JSON in the text of the first candidate's content part
         if not (response.get('candidates') and response['candidates'][0].get('content') and response['candidates'][0]['content'].get('parts')):

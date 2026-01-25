@@ -54,12 +54,14 @@ class GeminiClient:
             'x-goog-api-key': self.api_key
         }
 
-    def generate(self, prompt: str, timeout: int = 15) -> dict:
+    def generate(self, prompt: str, image_b64_data: str = None, image_mime_type: str = None, timeout: int = 15) -> dict:
         """
-        Sends a prompt to the Gemini API and gets a response.
+        Sends a prompt (and optional image) to the Gemini API and gets a response.
 
         Args:
             prompt: The text prompt to send to the model.
+            image_b64_data: Optional base64-encoded string of the image data.
+            image_mime_type: Optional MIME type of the image (e.g., "image/jpeg").
             timeout: The request timeout in seconds.
 
         Returns:
@@ -70,10 +72,17 @@ class GeminiClient:
             APIError: For non-200 responses from the API, including the status code and error message.
             ResponseParseError: If the response body is not valid JSON.
         """
+        parts = [{"text": prompt}]
+        if image_b64_data and image_mime_type:
+            parts.append({
+                "inline_data": {
+                    "mime_type": image_mime_type,
+                    "data": image_b64_data
+                }
+            })
+
         payload = {
-            "contents": [{
-                "parts": [{"text": prompt}]
-            }]
+            "contents": [{"parts": parts}]
         }
 
         try:
