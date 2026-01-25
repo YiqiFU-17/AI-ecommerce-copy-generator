@@ -1,0 +1,30 @@
+[project]
+name = "e-commerce-copywriting-tool"
+version = "0.1.0"
+description = "A simple tool to generate e-commerce copy."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { file = "LICENSE" }
+authors = [
+  { name = "Your Name", email = "you@example.com" }
+]
+dependencies = [
+    "streamlit",
+    "python-dotenv",
+    "requests",
+    "streamlit-extras",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-mock",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+

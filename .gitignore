@@ -13,3 +13,7 @@ venv/
 env/
 .venv/
 .env/
+*.egg-info/
+__pycache__/
+.venv/
+.env
