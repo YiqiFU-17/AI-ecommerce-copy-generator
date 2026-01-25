@@ -1,6 +1,6 @@
 # Architecture Document: E-commerce Copywriting Tool (MVP)
 
-**Version:** 1.0
+**Version:** 1.1
 **Status:** Proposed
 **Author:** Winston, Architect
 
@@ -36,9 +36,9 @@ The architecture for this MVP is a simple, single-process web application compos
 +--------------------------------+
 ```
 
-*   **UI Layer (Streamlit):** Responsible for rendering the user interface, capturing user input from web forms, displaying results, and handling file downloads. It orchestrates the application flow.
-*   **Copy Generation Service Layer:** The core business logic. This layer takes the raw input from the UI, uses the Gemini API Client to get a response from the LLM, and then parses and formats that response into the final data structure for display.
-*   **Gemini API Client Layer:** A dedicated module responsible for all communication with the `gemini-2.5-flash` API. It handles request formatting, authentication, error handling, and response parsing.
+*   **UI Layer (Streamlit):** Responsible for rendering the user interface, capturing user input from web forms, handling file uploads, displaying results, and managing file downloads. It orchestrates the application flow.
+*   **Copy Generation Service Layer:** The core business logic. This layer takes raw input from the UI (including optional image data), uses the Gemini API Client to get a response from the LLM, and then parses and formats that response into the final data structure for display. It is also responsible for base64 encoding image data.
+*   **Gemini API Client Layer:** A dedicated module responsible for all communication with the `gemini-2.5-flash` API. It handles multimodal request formatting, authentication, error handling, and response parsing.
 
 ## 2. Proposed Repository Structure
 
@@ -69,7 +69,7 @@ We will use simple Python classes or dataclasses for data modeling. They serve a
 
 ### 3.1. Input Schema (Internal Model)
 
-This model represents the structured data collected from the UI.
+This model represents the structured text data collected from the UI.
 
 ```python
 # In src/core.py
@@ -99,65 +99,96 @@ class GeneratedCopy:
     ctas: List[str]
 ```
 
-## 4. Gemini Client Design
+### 3.3. Image Input Schema (Internal Model)
 
-The `src/client.py` module will encapsulate all interactions with the Gemini API.
+This model represents the optional uploaded image data.
 
-### Key Components:
+```python
+# In src/core.py
+@dataclass
+class ImageInput:
+    mime_type: str
+    data: bytes
+```
 
-1.  **`build_prompt(data: ProductInput) -> str`:**
-    *   A dedicated function to construct the final text prompt sent to the LLM.
-    *   It will take the `ProductInput` dataclass and assemble a structured prompt that instructs the model to generate the desired output in a specific JSON format.
-    *   **Example Prompt Structure:**
+## 4. UI, Data Flow, and Client Design
+
+### 4.1. UI and Data Flow for Image Upload
+
+The UI will be updated to support an optional image upload, which triggers a multimodal request to the Gemini API.
+
+*   **UI Component (`app.py`):**
+    *   A `st.file_uploader` widget will be added to the input form, configured to accept only `.jpg` and `.png` files.
+*   **Validation (`app.py`):**
+    *   After a file is uploaded, the application will check its size. If it exceeds the 5MB limit, an error message is displayed using `st.error`, and the generation process is halted.
+    *   The file uploader's `type` argument inherently handles file type validation.
+*   **Preview (`app.py`):**
+    *   Upon successful validation, a thumbnail of the uploaded image will be displayed using `st.image` so the user can confirm their selection.
+*   **Data Flow:**
+    1.  The user uploads a file via the `st.file_uploader`.
+    2.  The Streamlit `UploadedFile` object is retrieved.
+    3.  The file's MIME type (e.g., `image/jpeg`) is accessed via the `.type` attribute.
+    4.  The raw image bytes are accessed via the `.getvalue()` method.
+    5.  Both `mime_type` and `data` (bytes) are passed to the **Copy Generation Service Layer (`core.py`)**.
+    6.  The service layer is responsible for **base64 encoding** the raw `data` bytes.
+    7.  The encoded data and MIME type are passed to the `GeminiClient`.
+
+### 4.2. Gemini Client Design
+
+The `src/client.py` module will be updated to handle multimodal requests.
+
+**1. `build_request_payload(data: ProductInput, image_input: Optional[ImageInput]) -> list:`**
+    *   This function replaces the previous `build_prompt` and constructs the `parts` array for the `generateContent` API call.
+    *   **Part 1 (Text):** The first element is always the text prompt, constructed from the `ProductInput` data.
+    *   **Part 2 (Image, Optional):** If an `ImageInput` is provided, a second dictionary is appended to the list. This dictionary contains the `inline_data` with the `mime_type` and the **base64-encoded** image data.
+    *   **Example Payload Structure (Multimodal):**
+        ```json
+        [
+          { "text": "You are an expert copywriter... Product Details: ..." },
+          {
+            "inline_data": {
+              "mime_type": "image/jpeg",
+              "data": "iVBORw0KGgoAAAANSUhEUgAA..."
+            }
+          }
+        ]
         ```
-        You are an expert Instagram copywriter. Given the following product details, generate 3 unique Instagram captions, 10 relevant hashtags, and 2 calls-to-action. Return the output as a single, minified JSON object with keys: "captions" (list of strings), "hashtags" (list of strings), and "ctas" (list of strings).
 
-        Product Details:
-        - Title: {data.title}
-        - Category: {data.category}
-        - Description: {data.description}
-        - Brand Tone: {data.brand_tone}
-        - Promotion: {data.promotion}
-        ```
-
-2.  **`class GeminiClient:`**
-    *   **`__init__(self)`:** Initializes the client. Retrieves the API key using `os.getenv('GEMINI_API_KEY')`. If the key is not found, it should raise a specific `ConfigurationError`.
-    *   **`generate(self, prompt: str) -> dict:`:**
-        *   Accepts the text prompt.
-        *   Sets a reasonable **timeout** (e.g., 15 seconds) for the request.
-        *   Implements a simple **retry** mechanism (e.g., 1 retry on a 5xx server error).
-        *   Sends the request to the `gemini-2.5-flash` endpoint via HTTPS POST.
-        *   **Error Handling:**
-            *   Catches `requests.Timeout` and raises a `ServiceTimeoutError`.
-            *   Checks for non-200 HTTP status codes and raises a generic `APIError`.
-            *   Attempts to parse the JSON response. If parsing fails, raises a `ResponseParseError`.
-        *   Returns the parsed JSON dictionary on success.
+**2. `class GeminiClient:`**
+    *   **`__init__(self)`:** No changes.
+    *   **`generate(self, payload: list) -> dict:`:**
+        *   The method signature is updated to accept the `payload` list generated by `build_request_payload`.
+        *   It sends this payload directly as the `contents` in the POST request to the Gemini API.
+        *   Error handling and retry logic remain the same.
 
 ## 5. Security & Privacy
 
-Adhering to the stateless nature of the application is paramount.
-
-*   **API Key Management:** The `GEMINI_API_KEY` **must not** be hardcoded. It will be loaded from an environment variable using `python-dotenv` for local development and set directly in the production environment.
-*   **No Data Storage:** The application is stateless. No user-provided data, uploaded files, or generated content will be saved to disk or a database. All data is processed in memory per-request and then discarded.
-*   **Prompt Injection:** For the MVP, the primary mitigation is user review. The UI must contain the disclaimer from the PRD ("*AI-generated content. Please review all claims for accuracy before posting.*"). No server-side sanitization will be implemented for the initial MVP to keep complexity low, as the user is the final gatekeeper.
+*   **API Key Management:** The `GEMINI_API_KEY` **must not** be hardcoded.
+*   **No Data Storage:** The application remains stateless. No user-provided data, uploaded files, or generated content will be saved to disk or a database.
+*   **File Upload Validation:** The application performs server-side validation of the file size (<= 5MB) and type (`image/jpeg`, `image/png`) to prevent abuse of the upload endpoint.
+*   **Prompt Injection:** The primary mitigation remains user review.
 
 ## 6. Test Plan
 
-Testing will focus on the logic layers, not the Streamlit UI itself. We will use `pytest` and `pytest-mock`.
-
 *   **Unit Tests (`tests/test_core.py`):**
-    *   Test the `build_prompt` function: ensure it correctly formats the prompt string from a sample `ProductInput` object.
-    *   Test the response parsing logic: given a sample valid/invalid JSON string from the LLM, does the service layer correctly create the `GeneratedCopy` object or handle the error?
+    *   Update tests for the prompt builder to check the new `build_request_payload` function. Test cases should cover both text-only and multimodal scenarios, verifying the base64 encoding is correctly applied.
+    *   Test the response parsing logic remains unchanged.
 *   **Integration Test (`tests/test_client.py`):**
-    *   Test the `GeminiClient.generate` method.
-    *   Use a mocker (like `pytest-mock`'s `mocker`) to patch the `requests.post` call.
-    *   Simulate different API responses: a successful 200 with valid JSON, a 500 server error, a timeout, and a 200 with malformed JSON.
-    *   Assert that the client handles each case correctly (returns data or raises the expected custom exception).
+    *   Update tests for `GeminiClient.generate` to pass a sample multimodal payload.
+    *   Use `pytest-mock` to simulate API responses and ensure the client correctly sends the multimodal payload.
 
-## 7. `requirements.txt` Contents
+## 7. Failure Modes
 
-The following libraries are required for the MVP.
+*   **Invalid File Upload:** If a user uploads a file that is not a `.png` or `.jpg`, or if the file is over 5MB, the UI will display a clear error message via `st.error`, and the "Generate" button will not proceed with an API call.
+*   **API Error:** If the Gemini API returns an error (e.g., it cannot process the image, or a server error occurs), the `APIError` from the client will be caught by the service layer, and a user-friendly error message will be displayed in the Streamlit UI.
 
+## 8. Unchanged Functionality
+
+Because the output schema (`GeneratedCopy`) remains the same, the existing features for displaying, copying, and exporting the generated captions, hashtags, and CTAs **are not affected and require no changes.**
+
+## 9. `requirements.txt` Contents
+
+No changes are required to the dependencies for this update.
 ```
 streamlit
 python-dotenv
