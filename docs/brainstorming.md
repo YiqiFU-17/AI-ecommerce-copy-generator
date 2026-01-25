@@ -127,7 +127,7 @@ This section captures key decisions made to define the MVP scope.
 
 *   **Max file size?** DECIDED: 5MB. Balances quality with performance.
 *   **Accepted file types?** DECIDED: `.jpg`, `.jpeg`, `.png`. These are the most common web image formats.
-*   **Is Brand Tone required for image-only?** DECIDED: No. The form can be submitted with only an image, but the prompt will be less constrained.
+*   **Is Brand Tone required for image-only?** DECIDED: Yes (UI requires it via dropdown). Image-only means only image + brand tone; other text fields optional.
 *   **How to handle missing text fields?** DECIDED: All text fields are optional if an image is provided. The prompt construction logic will gracefully handle missing fields.
 *   **What are the exact error messages?** DECIDED: As per PRD/Stories (e.g., "Image is too large. Please upload an image under 5MB.").
 
