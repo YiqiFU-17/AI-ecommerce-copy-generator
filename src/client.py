@@ -16,7 +16,7 @@ class APITimeoutError(APIError):
     pass
 
 class ResponseParseError(APIError):
-    """Raised when the API response is not valid JSON."""
+    """Raised when the response body is not valid JSON."""
     pass
 
 
@@ -24,11 +24,13 @@ class GeminiClient:
     """
     A client for interacting with the Google Gemini API.
     """
-    API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent"
+    BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models/"
     
     def __init__(self):
         """
         Initializes the GeminiClient.
+        
+        Reads configuration from environment variables.
         
         Raises:
             ConfigurationError: If the GEMINI_API_KEY environment variable is not set.
@@ -36,8 +38,21 @@ class GeminiClient:
         self.api_key = os.getenv('GEMINI_API_KEY')
         if not self.api_key:
             raise ConfigurationError("GEMINI_API_KEY environment variable not set.")
-        self.headers = {'Content-Type': 'application/json'}
-        self.params = {'key': self.api_key}
+        
+        # Default MODEL must be "gemini-2.5-flash" as per hard requirement.
+        # Allow overriding via env var GEMINI_MODEL.
+        model_name = os.getenv('GEMINI_MODEL', 'gemini-2.5-flash')
+        
+        # Make client robust if GEMINI_MODEL is provided as "models/xxx"
+        if model_name.startswith("models/"):
+            model_name = model_name[len("models/"):]
+            
+        self.api_url = f"{self.BASE_URL}{model_name}:generateContent"
+        
+        self.headers = {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': self.api_key
+        }
 
     def generate(self, prompt: str, timeout: int = 15) -> dict:
         """
@@ -52,7 +67,7 @@ class GeminiClient:
 
         Raises:
             APITimeoutError: If the request times out.
-            APIError: For non-200 responses from the API.
+            APIError: For non-200 responses from the API, including the status code and error message.
             ResponseParseError: If the response body is not valid JSON.
         """
         payload = {
@@ -63,21 +78,24 @@ class GeminiClient:
 
         try:
             response = requests.post(
-                self.API_URL,
+                self.api_url,
                 headers=self.headers,
-                params=self.params,
                 json=payload,
                 timeout=timeout
             )
-            response.raise_for_status()  # Raises HTTPError for bad responses (4xx or 5xx)
+            # Raise an HTTPError for bad responses (4xx or 5xx)
+            response.raise_for_status()
 
         except requests.exceptions.Timeout:
             raise APITimeoutError(f"Request timed out after {timeout} seconds.")
+        except requests.exceptions.HTTPError as e:
+            # Extract more detail from the HTTP error response if possible
+            error_details = e.response.text
+            raise APIError(f"API returned a non-200 status: {e.response.status_code}. Details: {error_details}")
         except requests.exceptions.RequestException as e:
-            raise APIError(f"An unexpected error occurred: {e}")
+            raise APIError(f"An unexpected error occurred during the request: {e}")
 
         try:
             return response.json()
         except json.JSONDecodeError:
             raise ResponseParseError("Failed to decode API response as JSON.")
-
