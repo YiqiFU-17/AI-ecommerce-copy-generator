@@ -12,6 +12,7 @@
 - When an image is successfully uploaded, a small preview of the image is displayed in the UI.
 - The image upload is optional; the "Generate" button remains active even if no image is provided.
 - On form submission, the uploaded image's file bytes and MIME type are extracted and passed as new arguments to the content generation service call.
+- The system supports image-only generation, where the user provides only an image without filling the product text fields, and the generation proceeds successfully.
 
 ### Tests / Definition of Done
 - **Manual Tests:**
@@ -21,7 +22,10 @@
     - Verify that uploading a JPG/JPEG/PNG larger than 5MB displays the correct size error.
     - Verify that generation can be triggered with text-only input (no image).
 - **Automated Tests:**
-    - (If applicable for Streamlit testing) Unit tests should simulate file uploads and check that the correct validation logic is triggered and that the service call is made with the expected image data.
+    - New or updated tests in `tests/test_core.py` and `tests/test_client.py` to cover:
+        - Image-only generation path (providing only an image, no text prompt).
+        - Text-only generation path (ensuring backward compatibility).
+        - Correct construction of the multimodal payload parts (text and `inline_data` for images) when both are provided.
 
 ### Files Likely to Change
 - `app.py`: To add the `st.file_uploader` and associated validation and preview logic.
