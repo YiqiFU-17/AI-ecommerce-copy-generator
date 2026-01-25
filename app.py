@@ -1,10 +1,16 @@
 import streamlit as st
-from src.core import ProductInput, generate_copy_from_input, GenerationError
+from src.core import ProductInput, GeneratedCopy, generate_copy_from_input, GenerationError, format_results_for_txt
+from streamlit_extras.keyboard_text import key
+from streamlit_extras.stateful_button import button
 
 st.set_page_config(page_title="E-commerce Copywriting Tool", layout="centered")
 
 st.title("🛍️ E-commerce Copywriting Tool")
 st.markdown("Generate on-brand Instagram captions, hashtags, and CTAs in seconds!")
+
+# --- Session State Initialization ---
+if 'generated_copy' not in st.session_state:
+    st.session_state.generated_copy = None
 
 # --- Form Definition ---
 BRAND_TONES = [
@@ -23,7 +29,7 @@ with st.form("copy_generation_form"):
 
     submitted = st.form_submit_button("Generate Copy")
 
-# --- Form Submission Logic ---
+# --- Form Submission & Results Display ---
 if submitted:
     if not product_title or not product_description or not product_category:
         st.error("Please fill in Product Title, Category, and Description.")
@@ -38,27 +44,47 @@ if submitted:
                     promotion=promotion if promotion else None,
                     target_audience=target_audience if target_audience else None
                 )
-                
-                # Call the generation service
-                generated_copy = generate_copy_from_input(product_input)
-
-                # Display the results
-                st.subheader("✅ Here's your generated copy!")
-
-                st.markdown("---")
-                st.markdown("### 📢 Captions")
-                for i, caption in enumerate(generated_copy.captions, 1):
-                    st.text_area(f"Caption Option {i}", caption, height=100)
-
-                st.markdown("---")
-                st.markdown("### #️⃣ Hashtags")
-                st.info(" ".join(generated_copy.hashtags))
-                
-                st.markdown("---")
-                st.markdown("### 👉 Calls to Action (CTAs)")
-                for cta in generated_copy.ctas:
-                    st.markdown(f"- {cta}")
-
+                # Store results in session state
+                st.session_state.generated_copy = generate_copy_from_input(product_input)
             except GenerationError as e:
+                st.session_state.generated_copy = None # Clear previous results on error
                 st.error(f"Failed to generate copy: {e}")
 
+# --- Display Area (if results exist) ---
+if st.session_state.generated_copy:
+    results = st.session_state.generated_copy
+    
+    st.subheader("✅ Here's your generated copy!")
+    st.markdown("---")
+
+    # Download Button
+    st.download_button(
+        label="⬇️ Download All as TXT",
+        data=format_results_for_txt(results),
+        file_name="copy_results.txt",
+        mime="text/plain"
+    )
+
+    st.markdown("---")
+    st.markdown("### 📢 Captions")
+    for i, caption in enumerate(results.captions, 1):
+        st.text_area(f"Caption Option {i}", caption, height=100, key=f"caption_{i}")
+        if button(f"Copy Caption {i}", key=f"copy_caption_{i}"):
+            st.toast(f"Caption {i} copied to clipboard!")
+            key(f"copy_caption_{i}_k", caption)
+
+    st.markdown("---")
+    st.markdown("### #️⃣ Hashtags")
+    hashtag_str = " ".join(results.hashtags)
+    st.info(hashtag_str)
+    if button("Copy Hashtags", key="copy_hashtags"):
+        st.toast("Hashtags copied to clipboard!")
+        key("copy_hashtags_k", hashtag_str)
+    
+    st.markdown("---")
+    st.markdown("### 👉 Calls to Action (CTAs)")
+    for i, cta in enumerate(results.ctas, 1):
+        st.markdown(f"- {cta}")
+    if button("Copy CTAs", key="copy_ctas"):
+        st.toast("CTAs copied to clipboard!")
+        key("copy_ctas_k", "\n".join(results.ctas))

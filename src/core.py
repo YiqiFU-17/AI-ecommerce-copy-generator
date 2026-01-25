@@ -28,6 +28,28 @@ class GenerationError(Exception):
     """Raised for errors during the copy generation process."""
     pass
 
+# --- Helper Functions ---
+
+def format_results_for_txt(copy: GeneratedCopy) -> str:
+    """Formats the GeneratedCopy object into a string for .txt export."""
+    lines = ["*** Generated Copy ***\n"]
+    
+    for i, caption in enumerate(copy.captions, 1):
+        lines.append(f"--- CAPTION {i} ---")
+        lines.append(caption)
+        lines.append("") # Add a blank line
+
+    lines.append("--- HASHTAGS ---")
+    lines.append(" ".join(copy.hashtags))
+    lines.append("")
+
+    lines.append("--- CTAs ---")
+    for cta in copy.ctas:
+        lines.append(f"- {cta}")
+    
+    return "\n".join(lines)
+
+
 # --- Service Layer ---
 
 def build_prompt(data: ProductInput) -> str:
