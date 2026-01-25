@@ -74,15 +74,34 @@ The application requires a Google Gemini API key to function.
     GEMINI_MODEL=gemini-pro
     ```
 
-## ▶️ How to Run the Application
+## ▶️ Usage
 
-With your virtual environment activated and your `.env` file configured, start the Streamlit application with the following command:
+### Running the Application
 
+With your virtual environment activated and your `.env` file configured, you can start the Streamlit application. For the application to access the Gemini API key, it's recommended to have it set as an environment variable in your shell.
+
+Run the following command:
 ```bash
 streamlit run app.py
 ```
 
 Your web browser should automatically open with the application running.
+
+### Image Upload (Optional)
+
+The application supports multimodal input, allowing you to provide an image alongside your text-based product details to generate more contextually relevant marketing copy.
+
+In the UI, you will see a file uploader component. A thumbnail preview will appear after a valid image is uploaded. The output format remains the same (3 captions, hashtags, 2 CTAs).
+
+**Supported Modes:**
+1.  **Text-only:** Fill in the product text fields without uploading an image.
+2.  **Image + Text:** Upload a valid image and fill in the product text fields.
+3.  **Image-only:** Upload a valid image without filling in the product text fields.
+
+**Constraints:**
+*   **Supported file types:** `.jpg` / `.jpeg` / `.png`
+*   **Maximum file size:** 5MB
+*   If an invalid file is uploaded (wrong type or too large), a clear error message will be displayed in the UI.
 
 ## ✅ How to Run Tests
 

@@ -1,6 +1,6 @@
 # Product Requirements Document: E-commerce Copywriting Tool (MVP)
 
-**Version:** 1.0
+**Version:** 1.1
 **Status:** Scoped for MVP
 **Author:** John, Product Manager
 **Stakeholders:** yiqi (Project Lead)
@@ -21,7 +21,7 @@ A lightweight, AI-powered tool that transforms basic product information into a 
 
 Our target users are individuals or small teams directly responsible for marketing e-commerce products on social media, who lack the time or budget for a dedicated copywriter.
 
-*   **Persona 1: Sarah, The Solopreneur Seller.** She runs a handmade jewelry shop and *is* the entire company. She needs to create engaging posts in minutes, so she can get back to her primary job: making products.
+*   **Persona 1: Sarah, The Solopreneur Seller.** She runs a handmade jewelry shop and is the entire company. She needs to create engaging posts in minutes, so she can get back to her primary job: making products.
 *   **Persona 2: Ben, The Marketing Generalist.** He's the one-man marketing team for an online subscription box company. He needs to efficiently generate a large volume of unique copy for multiple new products each week.
 *   **Persona 3: Maria, The Freelance Social Media Manager.** She juggles 5+ small business clients with different brand voices. She needs a tool to quickly switch context and generate on-brand copy without creative burnout.
 
@@ -35,12 +35,12 @@ The user journey is designed for speed and simplicity:
 2.  **Configure:** User selects brand tone and other optional parameters.
 3.  **Generate:** User clicks a "Generate" button. The tool sends a structured prompt to the LLM API.
 4.  **Review:** The UI displays the generated copy (multiple caption variants, hashtags, CTAs).
-5.  **Export:** User copies text directly or downloads the output as a `.txt` or `.csv` file.
+5.  **Export:** User copies text directly or downloads the output as a `.txt` file.
 
 ### 2.2. Key Use Cases for MVP
 
 1.  **Text-Only Input:** The user provides structured text details (product title, features, etc.) to generate copy. This is the core, most reliable use case.
-2.  **Image-Only Input:** The user uploads a single product image. The tool uses a multimodal model to describe the image and generate copy. (This is a "Should-Have" and depends on the model's capabilities being easily accessible).
+2.  **Image-Only Input:** The user uploads a single product image. The tool uses a multimodal model to describe the image and generate copy.
 3.  **Text + Image Input:** The user provides both text fields and an image, giving the AI maximum context for the highest quality output.
 
 ## 3. MVP Scope: The MoSCoW Method
@@ -51,7 +51,7 @@ This scope is defined for a **~1-week implementation sprint**.
 
 *   **M-1:** Simple web UI built with Python (Streamlit).
 *   **M-2:** Form for structured text input (product title, description, features, brand tone).
-*   **M-3:** Integration with a third-party LLM API (`gemini-2.5-flash`).
+*   **M-3:** Integration with a third-party LLM API (`gemini-1.5-flash`).
 *   **M-4:** Core prompt engineering to generate 3 Instagram caption variants, 5-10 relevant hashtags, and 2 CTA options from text input.
 *   **M-5:** Display generated results clearly in the UI.
 *   **M-6:** "Copy to Clipboard" button for each generated asset.
@@ -60,7 +60,7 @@ This scope is defined for a **~1-week implementation sprint**.
 
 ### 3.2. Should-Haves (High-Value additions, if time permits)
 
-*   **S-1:** File upload for a single product image to use as input.
+*   **S-1:** File upload for a single product image to use as input. (This was implemented in v1.0).
 *   **S-2:** File upload for product data via a `.csv` file (mapping columns to input fields).
 *   **S-3:** Export results in `.csv` and `.json` formats.
 *   **S-4:** Generation of `alt-text` for the product image.
@@ -90,7 +90,7 @@ Based on the Must-Haves:
 *   **FR-1:** The system shall provide a web interface accessible via a browser.
 *   **FR-2:** The UI must contain text input fields for: Product Title, Product Category, Key Features/Description, Promotion/Discount, Brand Tone, and Target Audience.
 *   **FR-3:** The system must provide a "Generate Copy" button.
-*   **FR-4:** On button click, the system shall construct a prompt and send it to the `gemini-2.5-flash` API endpoint.
+*   **FR-4:** On button click, the system shall construct a prompt and send it to the `gemini-1.5-flash` API endpoint.
 *   **FR-5:** The system shall parse the API response and display the following in a structured format:
     *   3 distinct Instagram caption variants.
     *   A list of 5-10 suggested hashtags.
@@ -101,7 +101,7 @@ Based on the Must-Haves:
     *   **Acceptance Criteria:**
         *   The UI must feature a file upload widget that accepts only `.jpg`, `.jpeg`, and `.png` file types.
         *   The system must enforce a maximum file size of 5MB.
-        *   If a user attempts to upload an unsupported file type or a file larger than 5MB, a clear error message shall be displayed (e.g., "Invalid file. Please upload a JPG or PNG under 5MB.").
+        *   If a user attempts to upload an unsupported file type or a file larger than 5MB, a clear error message shall be displayed (e.g., "Invalid file. Please upload a JPG, JPEG, or PNG under 5MB.").
         *   The image upload is optional; generation can proceed with text-only inputs or with both image and text inputs.
         *   When both an image and text fields are provided, the model prompt should prioritize facts from the image and use text fields (like Brand Tone, Promotion) as supplemental constraints.
         *   The generated output structure (3 captions, hashtags, 2 CTAs) must remain identical to the text-only output.
@@ -161,7 +161,7 @@ Based on the Must-Haves:
     *   **Acceptance Criteria:**
         *   The UI provides a clear "Upload Image" button or drag-and-drop area.
         *   After I select a valid image, a thumbnail preview is shown.
-        *   If I upload an invalid file (not JPG/PNG or >5MB), an immediate error message appears.
+        *   If I upload an invalid file (not JPG/JPEG/PNG or >5MB), an immediate error message appears.
         *   I can click "Generate Copy" with only an image uploaded and receive relevant results.
         *   The generated captions, hashtags, and CTAs are displayed in the same format as the text-only generation.
 
@@ -175,7 +175,7 @@ Based on the Must-Haves:
 *   **Promotion/Discount:** `text` (optional), max 100 chars. E.g., "20% off this week".
 *   **Brand Tone:** `dropdown selection`. (See Story 1 AC).
 *   **Target Audience:** `text` (optional), max 200 chars. E.g., "Yoga enthusiasts", "New parents".
-*   **(Should-Have) Product Image:** `file upload`, `.jpg`, `.png`, max 5MB.
+*   **Product Image:** `file upload`, `.jpg`, `.jpeg`, `.png`, max 5MB.
 *   **(Should-Have) CSV Input:** `file upload`, `.csv`. Must contain headers matching the text input fields.
 
 ### 6.2. Output Details
