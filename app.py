@@ -1,7 +1,6 @@
 import streamlit as st
 from src.core import ProductInput, GeneratedCopy, generate_copy_from_input, GenerationError, format_results_for_txt
-from streamlit_extras.keyboard_text import key
-from streamlit_extras.stateful_button import button
+from st_copy import copy_button
 
 st.set_page_config(page_title="E-commerce Copywriting Tool", layout="centered")
 
@@ -69,22 +68,17 @@ if st.session_state.generated_copy:
     st.markdown("### 📢 Captions")
     for i, caption in enumerate(results.captions, 1):
         st.text_area(f"Caption Option {i}", caption, height=100, key=f"caption_{i}")
-        if button(f"Copy Caption {i}", key=f"copy_caption_{i}"):
-            st.toast(f"Caption {i} copied to clipboard!")
-            key(f"copy_caption_{i}_k", caption)
+        copy_button(caption, tooltip=f"Copy Caption {i}", key=f"copy_caption_{i}")
 
     st.markdown("---")
     st.markdown("### #️⃣ Hashtags")
     hashtag_str = " ".join(results.hashtags)
     st.info(hashtag_str)
-    if button("Copy Hashtags", key="copy_hashtags"):
-        st.toast("Hashtags copied to clipboard!")
-        key("copy_hashtags_k", hashtag_str)
+    copy_button(hashtag_str, tooltip="Copy Hashtags", key="copy_hashtags")
     
     st.markdown("---")
     st.markdown("### 👉 Calls to Action (CTAs)")
-    for i, cta in enumerate(results.ctas, 1):
-        st.markdown(f"- {cta}")
-    if button("Copy CTAs", key="copy_ctas"):
-        st.toast("CTAs copied to clipboard!")
-        key("copy_ctas_k", "\n".join(results.ctas))
+    cta_display_list = [f"- {cta}" for cta in results.ctas]
+    cta_copy_str = "\n".join(cta_display_list)
+    st.markdown(cta_copy_str)
+    copy_button(cta_copy_str, tooltip="Copy CTAs", key="copy_ctas")
